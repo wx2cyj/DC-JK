@@ -36,5 +36,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:latest
+          tags: ghcr.io/wx2cyj/dc-jk:latest
