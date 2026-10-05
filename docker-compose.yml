@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  sp-monitor:
+    build: .
+    container_name: sp-tobacco-monitor
+    restart: unless-stopped
+    network_mode: host
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Asia/Shanghai
