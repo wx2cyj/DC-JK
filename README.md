@@ -113,20 +113,40 @@ PUSHPLUS_TOKEN=
 
 ### 方式 1：Docker Compose 部署（推荐：飞牛NAS / Unraid / VPS）
 
-在项目根目录下直接启动：
-
+#### 选项 A：使用本地源码构建运行（已验证推荐）
+在项目目录下直接构建启动：
 ```bash
 docker compose up -d --build
 ```
 
-查看实时日志：
+#### 选项 B：使用 GitHub Actions 自动构建的预编译镜像
+如果不需要本地编译，可直接拉取由 GitHub Actions 自动发布的 GHCR 镜像：
+```yaml
+services:
+  sp-monitor:
+    image: ghcr.io/wx2cyj/dc-jk:latest
+    container_name: sp-tobacco-monitor
+    restart: unless-stopped
+    network_mode: host
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Asia/Shanghai
+```
+启动命令：
+```bash
+docker compose up -d
+```
 
+查看实时日志：
 ```bash
 docker compose logs -f
 ```
 
 停止容器：
-
 ```bash
 docker compose down
 ```
