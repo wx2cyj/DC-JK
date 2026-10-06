@@ -1,14 +1,13 @@
 services:
   sp-monitor:
-    build: .
-    image: sp-tobacco-monitor-sp-monitor:latest
+    image: ghcr.io/wx2cyj/dc-jk:latest
     container_name: sp-tobacco-monitor
     restart: unless-stopped
     network_mode: host
     env_file:
       - .env
     volumes:
-      - ./:/app
+      - ./data:/app/data
       - /etc/localtime:/etc/localtime:ro
     environment:
       - TZ=Asia/Shanghai
