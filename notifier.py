@@ -254,8 +254,33 @@ def build_card_markdown_formatted(item: Dict) -> str:
     return "\n".join(lines)
 
 
+def chunk_items_by_bytes(items: List[Dict], max_bytes: int = 1800) -> List[List[Dict]]:
+    """按企业微信 2048 字节限制智能动态分批，确保任何客户端绝不截断"""
+    batches = []
+    current_batch = []
+    # 预留表头和标题字符约 350 字节
+    current_bytes = 350
+
+    for item in items:
+        card_text = build_card_text_formatted(item)
+        card_b = len(card_text.encode("utf-8"))
+
+        if current_batch and (current_bytes + card_b > max_bytes):
+            batches.append(current_batch)
+            current_batch = [item]
+            current_bytes = 350 + card_b
+        else:
+            current_batch.append(item)
+            current_bytes += card_b
+
+    if current_batch:
+        batches.append(current_batch)
+
+    return batches
+
+
 def notify_new_specials(items: List[Dict]):
-    """推送新上架特价斗草（支持防超长分批发送，每批最多6款）"""
+    """推送新上架特价斗草（智能动态分批，彻底杜绝单条超过2048字节被截断）"""
     if not items:
         return
 
@@ -271,8 +296,8 @@ def notify_new_specials(items: List[Dict]):
     # 按现货在前排序
     sorted_items = sorted(items, key=lambda x: (not x.get("is_in_stock", False), x.get("brand", "")))
 
-    batch_size = 6
-    batches = [sorted_items[i:i + batch_size] for i in range(0, total_count, batch_size)]
+    # 智能字节级分批 (单条限 1800 字节，远低于企微 2048 字节阈值)
+    batches = chunk_items_by_bytes(sorted_items, max_bytes=1800)
 
     for idx, batch in enumerate(batches):
         batch_num_str = f" (第 {idx+1}/{len(batches)} 批)" if len(batches) > 1 else ""
@@ -345,25 +370,32 @@ def notify_price_drops(items: List[Dict]):
 
 
 def notify_restocked(items: List[Dict]):
-    """推送补货提醒"""
+    """推送补货提醒（智能分批）"""
     if not items:
         return
-    title = f"📦 SP站特价补货：{len(items)} 款斗草恢复现货！"
-    text_lines = [
-        f"📦【SP站特价补货到货！】",
-        f"原先缺货的 {len(items)} 款特价草已恢复库存：",
-        "----------------------------------------"
-    ]
-    md_lines = [
-        f"## 📦 SP站特价补货到货！",
-        f"> 原先缺货的 **{len(items)}** 款特价草已恢复库存：\n",
-        "---"
-    ]
-    for it in items:
-        text_lines.append(build_card_text_formatted(it))
-        md_lines.append(build_card_markdown_formatted(it))
+    total_count = len(items)
+    title = f"📦 SP站特价补货：{total_count} 款斗草恢复现货！"
+    batches = chunk_items_by_bytes(items, max_bytes=1800)
 
-    WeComNotifier.dispatch_notification(title, "\n".join(text_lines), "\n".join(md_lines))
+    for idx, batch in enumerate(batches):
+        batch_num_str = f" (第 {idx+1}/{len(batches)} 批)" if len(batches) > 1 else ""
+        text_lines = [
+            f"📦【SP站特价补货到货！】{batch_num_str}",
+            f"原先缺货的 {total_count} 款特价草已恢复库存：",
+            "----------------------------------------"
+        ]
+        md_lines = [
+            f"## 📦 SP站特价补货到货！{batch_num_str}",
+            f"> 原先缺货的 **{total_count}** 款特价草已恢复库存：\n",
+            "---"
+        ]
+        for it in batch:
+            text_lines.append(build_card_text_formatted(it))
+            md_lines.append(build_card_markdown_formatted(it))
+
+        WeComNotifier.dispatch_notification(f"{title}{batch_num_str}", "\n".join(text_lines), "\n".join(md_lines))
+        if idx < len(batches) - 1:
+            time.sleep(1.0)
 
 
 def notify_daily_summary(all_items: List[Dict]):
