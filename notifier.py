@@ -5,6 +5,7 @@ from typing import List, Dict
 from config import Config
 from currency import CurrencyConverter
 from flavor_classifier import translate_cut
+from tobacco_alias import get_brand_chinese, get_tobacco_chinese_alias
 
 logger = logging.getLogger("Notifier")
 
@@ -141,6 +142,9 @@ def build_card_text_formatted(item: Dict) -> str:
     """格式化单款斗草的文本内容（兼容所有端）"""
     title = item.get("title", "未知品名")
     brand = item.get("brand", "SP")
+    brand_cn = get_brand_chinese(brand)
+    alias = get_tobacco_chinese_alias(title, brand)
+
     flavor = item.get("flavor_category", "综合调配")
     flavor_desc = item.get("flavor_desc", "")
 
@@ -164,10 +168,12 @@ def build_card_text_formatted(item: Dict) -> str:
     discount_str = f" ({discount_ratio}折)" if discount_ratio > 0 and discount_ratio < 10 else ""
     stock_str = "✅ 现货在售" if in_stock else "⚠️ 暂时缺货"
 
-    lines = [
-        f"【{brand}】{title}",
-        f"• 口味类型: {flavor}",
-    ]
+    brand_header = brand_cn if brand_cn else brand
+    lines = [f"【{brand_header}】{title}"]
+    if alias:
+        lines.append(f"• 圈内俗称: 🏷️ {alias}")
+
+    lines.append(f"• 口味类型: {flavor}")
     if flavor_desc:
         lines.append(f"• 风味特点: {flavor_desc}")
     if cut:
@@ -194,6 +200,9 @@ def build_card_markdown_formatted(item: Dict) -> str:
     """格式化单款斗草的 Markdown 内容（供机器人与网页使用）"""
     title = item.get("title", "未知品名")
     brand = item.get("brand", "SP")
+    brand_cn = get_brand_chinese(brand)
+    alias = get_tobacco_chinese_alias(title, brand)
+
     flavor = item.get("flavor_category", "综合调配")
     flavor_desc = item.get("flavor_desc", "")
 
@@ -217,10 +226,12 @@ def build_card_markdown_formatted(item: Dict) -> str:
     discount_str = f" ({discount_ratio}折)" if discount_ratio > 0 and discount_ratio < 10 else ""
     stock_badge = '<font color="info">✅ 现货在售</font>' if in_stock else '<font color="comment">⚠️ 暂时缺货</font>'
 
-    lines = [
-        f"### [{brand}] {title}",
-        f"> **口味类型**: {flavor}",
-    ]
+    brand_header = brand_cn if brand_cn else brand
+    lines = [f"### [{brand_header}] {title}"]
+    if alias:
+        lines.append(f"> **圈内俗称**: 🏷️ **{alias}**")
+
+    lines.append(f"> **口味类型**: {flavor}")
     if flavor_desc:
         lines.append(f"> **风味特点**: <font color=\"comment\">{flavor_desc}</font>")
     if cut:
