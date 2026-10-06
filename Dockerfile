@@ -1,5 +1,8 @@
 FROM python:3.11-slim
 
+LABEL org.opencontainers.image.source="https://github.com/wx2cyj/DC-JK"
+LABEL org.opencontainers.image.description="Smokingpipes specials tobacco monitor"
+
 WORKDIR /app
 
 # 设置时区为上海
