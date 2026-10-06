@@ -1,42 +1,40 @@
-# Smokingpipes (美国 SP 站) 特价斗草微信监控系统
+# Smokingpipes (美国 SP 站) 特价斗草微信监控系统 (DC-JK)
 
-专门监控美国 Smokingpipes (SP站) 特价斗草专区的自动化监控推送系统。解决 Cloudflare 反爬、突破 `Show More` 按钮隐藏截断、自动折算单月海关汇率人民币价格、智能识别口味分类（L草、V草、调味草等），并在特价上新、降价、补货时第一时间推送到微信。
-
----
-
-## 🎯 方案选型说明：为什么选择企业微信应用而非小程序？
-
-| 对比维度 | 微信小程序 | 企业微信自建应用 / 机器人（推荐） |
-| :--- | :--- | :--- |
-| **主动推送能力** | ❌ 无法主动给用户推送（受限于微信“一次性订阅消息”，用户点一次才能推一条） | ✅ 随时主动推送，手机锁屏即时弹出通知 |
-| **微信接收体验** | 需常驻后台或手动打开查看 | ✅ 开启“微信插件”后，**直接在个人普通微信聊天列表接收**，无需下载企微 App |
-| **行业类目合规** | ❌ **烟草属于微信严重违规类目**，个人/企业小程序均无法通过审核 | ✅ 自建私有应用，仅供个人/群组内部通知使用，**无审核限制，永不封禁** |
-| **开发与维护成本** | 需配置前端、域名备案、小程序服务器合规等 | ✅ 纯后端脚本，一个 Docker 容器直接跑在 VPS 或 NAS 上 |
-
-> 💡 **核心体验**：在企业微信管理后台绑定“微信插件”（微信扫码关注）后，所有特价草卡片消息都会**直接推送到你的个人普通微信**中，点击消息即可一键直达 SP 站商品购买页面！
+专门监控美国知名烟斗电商 Smokingpipes (SP 站) 特价斗草专区的全自动化监控推送系统。突破 Cloudflare 盾防、突破 `Show More` 按钮隐藏截断、严格按《海关总署第 272 号令》法定基准日自动推算美元汇率、内置近两百款老斗客黑话俗称与口味分类（L草、V草、调味草等），并通过微信服务号实现电脑版与手机版无损图文卡片秒级推送。
 
 ---
 
-## 🚀 核心技术与特性
+## 🚀 核心架构与核心特性
 
-1. **突破 `Show More` 截断机制**：
+1. **严格遵循《海关总署第 272 号令》法定计征汇率算法**：
+   - **法定规则**：每月海关计征汇率 = **上个月第三个星期三的中国人民银行人民币汇率中间价**（如遇休市顺延下一个交易日）。
+   - **全自动日历推算**：系统内置日历回溯矩阵，自动推算当月法定基准日（如 2026 年 10 月基准日为 `2026-09-16`，央行中间价为 `6.7628`；11 月基准日自动推算为 `2026-10-21` 等）。
+   - **权威标注与核算**：推送卡片明确标注法定基准日与核定汇率，每一罐斗草的人民币到手基准价精确换算，绝非市面粗算。
+
+2. **内置圈内黑话俗称与风味分类库 (`tobacco_alias.py`)**：
+   - 告别纯英文生硬机翻，收录近两百款国内外老饕经典草名：
+     - **FT小白**：`Fribourg & Treyer Cut Virginia Plug (CVP)` ➔ **FT小白 (小白盖 / CVP纯V压饼天花板)**
+     - **红法**：`Rattray's Red Rapparee` ➔ **红法 (红毛游击队 / 经典红色巴尔干)**，`McClelland 5100` ➔ **红法 5100 (红蛋糕 / 纯红V)**
+     - **三尼姑**：`Bell's Three Nuns` ➔ **三尼姑 (经典硬币/切片神作)**
+     - **秋夜 / 闹鬼书店**：`C&D Autumn Evening` ➔ **秋夜 (CD 枫糖香草)**，`Haunted Bookshop` ➔ **闹鬼书店 / 凶宅书店**
+     - **马坝全系**：`Mixture Scottish Blend` ➔ **苏格兰混合 (马坝经典口粮)**，`Navy Flake` ➔ **马坝海航切片**，`Virginia No. 1` ➔ **V1**，`Vanilla Cream` ➔ **香草奶油**
+     - **老饕名草**：`FVF (全弗吉尼亚切片)`、`睡帽 (Nightcap)`、`早安 (EMP)`、`965`、`大黄盖 (OGS)`、`李子布丁`、`小盾牌 (Escudo)`、`蓝帆船/黄帆船`、`咸狗插件 (Salty Dogs)`、`地窖青蛙`、`彭赞斯 (P草)`、`大金刚 (鸟眼)`、`神雕 (秃鹰)`、`索拉尼 633/660/779` 等。
+   - **风味智能归类**：自动归入 🍂 L草 (英式/拉塔基亚/巴尔干)、🌿 V草 (纯V/VaPer珀草)、🍬 调味草、🌰 白肋草 (Burley/肯塔基DFK) 等。
+
+3. **突破 `Show More` 按钮隐藏截断机制**：
    - SP 站特价主页默认每个品牌只展示 5 款，其余隐藏在 `Show More` 之后。
-   - 本系统自动解析各特价品牌的专属 Sale 专区（如 `/pipe-tobacco/erik-stokkebye/?special=sale`），拉取该品牌的**全部特价商品**（如 20 款全量获取），并与首页去重合并，100% 杜绝漏抓。
-2. **穿透 Cloudflare 403 防护**：
-   - 采用 `curl_cffi` 模拟现代 Chrome TLS/JA3 指纹，避免普通爬虫被拦截。
-3. **单月海关汇率折算**：
-   - 支持在 `.env` 中配置固定的海关单月计征汇率（如 `7.2150`）；
-   - 若未配置，自动在线拉取最新基准汇率实时换算。
-4. **斗草口味智能分类**：
-   - **🍂 L草 (英式调配 / English / 巴尔干 / 苏格兰)**：识别 Latakia、Oriental、Balkan 等成分与家族。
-   - **🌿 V草 (弗吉尼亚纯草 / VaPer 珀草调配)**：识别纯 V、VaPer 等。
-   - **🍬 调味草 (Aromatic / 调香)**：识别香草、可可、酒香调味。
-   - **🌰 白肋草 / 肯塔基 (Burley / DFK)**：坚果醇厚调配。
-   - **裁切规格中文化**：细切丝 (Ribbon)、切片 (Flake)、碎切片 (Broken Flake) 等。
-5. **智能 Diff 告警引擎**：
-   - 内置 SQLite 数据库，记录每款斗草的价格与在库历史；
-   - 区分【特价上新】、【进一步降价】、【缺货补货到货】；
-   - 避免重复推送同一款已在售特价草骚扰。
+   - 爬虫联动解析各品牌的专属 Sale 专区（如 `/pipe-tobacco/mac-baren/?special=sale`），拉取该品牌的**全量特价商品**，与主页去重合并，100% 杜绝漏抓。
+
+4. **原生 IPv6 直连穿透 Cloudflare 403 封锁**：
+   - 飞牛 NAS / Linux 部署采用 `network_mode: host`，直接利用家庭宽带的高信誉原生 IPv6 协议栈直连 SP 站，**免去翻墙代理，零被封风险**。
+
+5. **全端兼容的微信服务号 Markdown 列表排版**：
+   - 采用微信公众号（PushPlus 服务号）模板消息推送，单条支持高达 **40,000 字节**，彻底告别企业微信 2048 字节超长截断的痛点。
+   - 严格采用 Markdown 无序列表项渲染，在手机微信、Mac/Windows 电脑版微信上均达成**“一行一个类型”**的极致工整阅读体验。
+
+6. **智能状态流转与静默监听**：
+   - 记录每款草的在售状态（`is_active_special`），已下架的特价草自动剔除，下次打折自动识别为【全新特价】；
+   - 彻底关闭无意义的每日定时早报骚扰，**只有真正有新草特价、降价或缺货补货时才通知，平时绝不打扰**！
 
 ---
 
@@ -44,90 +42,70 @@
 
 ```text
 sp-tobacco-monitor/
-├── .env.example              # 配置文件模板
-├── requirements.txt          # Python 依赖
-├── Dockerfile                # Docker 镜像构建文件
-├── docker-compose.yml        # Docker Compose 编排文件
-├── config.py                 # 配置加载
-├── currency.py               # 海关汇率计算器
-├── flavor_classifier.py      # 口味智能分类器
-├── storage.py                # SQLite 持久化与 Diff 引擎
-├── scraper.py                # 穿透 Cloudflare 的 SP 爬虫
-├── notifier.py               # 微信通知格式化与推送
-└── main.py                   # 调度主程序
+├── .env.example              # 环境变量配置模板
+├── requirements.txt          # Python 核心依赖 (curl_cffi, bs4, requests, python-dotenv)
+├── Dockerfile                # 基于 python:3.11-slim，内置 OCI 元数据
+├── docker-compose.yml        # Docker Compose 生产编排文件 (GHCR 镜像)
+├── config.py                 # 全局配置加载
+├── currency.py               # 海关总署第272号令月度法定汇率引擎 (CustomsRateManager)
+├── flavor_classifier.py      # 斗草口味智能分类器 (L草/V草/VaPer/调味/白肋)
+├── tobacco_alias.py          # 圈内经典黑话俗称与品牌简称全量库
+├── storage.py                # SQLite 本地持久化与下架状态追踪引擎
+├── scraper.py                # 穿透 Cloudflare 与突破 Show More 爬虫
+├── notifier.py               # 微信服务号单行列表排版通知分发引擎
+└── main.py                   # 调度主程序 (默认 30 分钟轮询)
 ```
 
 ---
 
-## ⚙️ 快速配置指南
+## ⚙️ 快速配置说明
 
-复制环境配置文件：
+在项目目录复制环境配置文件：
 
 ```bash
 cp .env.example .env
 ```
 
-编辑 `.env` 文件，填入你的配置：
+编辑 `.env`：
 
 ```ini
-# 1. 检查频率（分钟，推荐 15-30 分钟）
+# 1. 监控基础设置
+SPECIALS_URL=https://www.smokingpipes.com/specials.cfm?specials=pipe-tobaccos
 CHECK_INTERVAL_MINUTES=30
 
-# 2. 单月海关美元计征汇率（如当月海关核定汇率为 7.2150；留空则自动联网获取最新汇率）
-CUSTOMS_USD_RATE=7.2150
+# 单月海关美元计征汇率 (海关总署第272号令：每月计征汇率=上月第三个周三央行汇率中间价)
+# 可直接填入当月核定汇率（如 2026年10月为 6.7628）；若填 0 或留空，系统会自动根据海关法定算法联网获取基准日中间价
+CUSTOMS_USD_RATE=6.7628
 
-# 3. 是否仅提醒有现货的斗草（true: 忽略缺货；false: 缺货也提醒）
+# 是否仅提醒有现货的特价斗草（true: 忽略缺货 / false: 缺货也提醒）
 ONLY_IN_STOCK=false
 
-# ================= 微信通知配置（二选一即可） =================
+# 首次启动程序时，是否发送当前在售全部特价草清单
+NOTIFY_ON_STARTUP=true
 
-# 方式一：企业微信自建应用（推荐，直接推送到个人普通微信）
-WECOM_CORP_ID=ww1234567890abcdef
-WECOM_CORP_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-WECOM_AGENT_ID=1000002
-WECOM_TO_USER=@all
+# 每日定时汇总推送时间 (格式 HH:MM，留空则不推送；默认留空避免每日重复打扰)
+DAILY_REPORT_TIME=
 
-# 如果部署在家里/公司 NAS（无固定公网 IPv4），可配置 SGW1 企微代理接口，绕过白名单限制：
-WECOM_PROXY_URL=http://140.245.40.253:56789
-
-# 方式二：企业微信群机器人（最简单，几秒钟搞定，无需任何代理与固定 IP）
-WECOM_WEBHOOK_URL=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxx-xxxx-xxxx
-
-# 方式三：PushPlus 个人微信推送（备选）
-PUSHPLUS_TOKEN=
+# 2. 微信推送配置 (PushPlus 微信服务号推送，零门槛、无字数截断)
+# 微信关注公众号「push+ 推送加」(www.pushplus.plus) 复制个人 token 填入即可：
+PUSHPLUS_TOKEN=你的Token
 ```
-
-### 如何获取企业微信自建应用凭证？
-1. 电脑访问 [企业微信管理后台](https://work.weixin.qq.com/)，免费注册或登录。
-2. 点击 **“应用管理”** ➔ **“自建”** ➔ **“创建应用”**：
-   - 应用名称：`SP特价斗草监控`
-   - 可见范围：选择你自己（或整个公司）
-   - 创建后可获得 **`AgentId`** 和 **`Secret`**。
-3. 点击 **“我的企业”** ➔ 最下方获取 **`企业ID (CorpId)`**。
-4. **让消息直接在个人普通微信显示**：
-   - 在企业微信后台点击 **“协作”** 或 **“微信插件”**，用个人微信扫描二维码关注即可。
 
 ---
 
-## 🐳 部署运行方式
+## 🐳 飞牛 NAS / Linux 部署运行方式 (推荐 GHCR 官方镜像)
 
-### 方式 1：Docker Compose 部署（推荐：飞牛NAS / Unraid / VPS）
+### 1. 使用 Docker Compose 一键拉取启动
 
-#### 选项 A：使用本地源码构建运行（已验证推荐）
-在项目目录下直接构建启动：
-```bash
-docker compose up -d --build
-```
+`docker-compose.yml` 推荐配置如下：
 
-#### 选项 B：使用 GitHub Actions 自动构建的预编译镜像
-如果不需要本地编译，可直接拉取由 GitHub Actions 自动发布的 GHCR 镜像：
 ```yaml
 services:
   sp-monitor:
     image: ghcr.io/wx2cyj/dc-jk:latest
     container_name: sp-tobacco-monitor
     restart: unless-stopped
-    network_mode: host
+    network_mode: host # 关键：使用 Host 网络模式，直接利用家宽公网 IPv6 直连 SP 站
     env_file:
       - .env
     volumes:
@@ -136,55 +114,51 @@ services:
     environment:
       - TZ=Asia/Shanghai
 ```
-启动命令：
+
+在飞牛 NAS 终端直接执行：
+
 ```bash
+# 1. 拉取最新官方镜像
+docker compose pull
+
+# 2. 后台启动容器
 docker compose up -d
-```
 
-查看实时日志：
-```bash
-docker compose logs -f
-```
-
-停止容器：
-```bash
-docker compose down
-```
-
-### 方式 2：本地 Python 直接运行
-
-```bash
-# 创建虚拟环境
-python3 -m venv venv
-source venv/bin/activate
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 单次测试运行（立即扫描一次特价并测试推送）
-python main.py --once
-
-# 后台持续监控运行
-python main.py
+# 3. 查看实时运行日志
+docker logs -f sp-tobacco-monitor
 ```
 
 ---
 
-## 📱 微信推送效果示例
+## 📱 微信推送实测效果预览
 
 ```markdown
-🔥 SP站特价上新通知 (第 1/3 批)
-> 更新数量: 发现 25 款特价草 (本批 8 款)
-> 汇率基准: 海关月度计征汇率 (7.2150)
-> 监控主页: 点击查看SP特价专区
+# 🔥 SP站特价斗草实时清单
+> 在售数量: 共 5 款 (现货: 3款 / 缺货待补: 2款)
+> 汇率基准: 2026年10月海关计征汇率 (6.7628 / 基准日: 2026-09-16)
+> 特价主页: 点击进入美国 SP 特价专区
 
 ---
-### [Erik Stokkebye 4th Generation] 1882 Founder's Blend 1.76oz
-> 口味类型: 🍂 L草 (英式调配 / English)
-> 风味特点: 以拉塔基亚与东方叶为主的经典烟熏泥炭香
-> 裁切规格: 细切丝 (Ribbon)
-> 特价价格: $12.46 (原价 $13.85 (9.0折))
-> 折合RMB: ¥89.90
-> 库存状态: ✅ 现货在售
-> 👉 点击前往SP站直达购买 (带直达链接)
+
+### 【马坝 (Mac Baren)】Mixture Scottish Blend 3.5oz
+* 圈内俗称: 🏷️ 苏格兰混合 (马坝经典口粮苏格兰)
+* 口味类型: 🍬 调味草 (Aromatic / 调香)
+* 风味特点: 香气甜美突出，室韵极佳
+* 裁切规格: 碎切片 (Broken Flake)
+* 特价价格: $16.28 (原价 $20.35 (8.0折))
+* 折合RMB: ¥110.10
+* 库存状态: ✅ 现货在售
+* 活动信息: 20% Off Mac Baren Tinned Pipe Tobacco
+* 直达购买: 👉 点击前往 SP 站购买
+
+### 【马坝 (Mac Baren)】Navy Flake 3.5oz
+* 圈内俗称: 🏷️ 马坝海航切片 (海军切片)
+* 口味类型: 🌰 白肋草 (Burley / 肯塔基 DFK)
+* 风味特点: 坚果可可香气，劲道扎实饱满
+* 裁切规格: 切片 (Flake)
+* 特价价格: $25.36 (原价 $31.70 (8.0折))
+* 折合RMB: ¥171.50
+* 库存状态: ✅ 现货在售
+* 活动信息: 20% Off Mac Baren Tinned Pipe Tobacco
+* 直达购买: 👉 点击前往 SP 站购买
 ```
