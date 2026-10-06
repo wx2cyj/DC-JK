@@ -25,6 +25,7 @@ class Storage:
                 sale_price_usd REAL,
                 regular_price_usd REAL,
                 is_in_stock INTEGER,
+                is_active_special INTEGER DEFAULT 1,
                 discount_msg TEXT,
                 family TEXT,
                 components TEXT,
@@ -91,8 +92,15 @@ class Storage:
         price_drops = []
         restocked_items = []
         now = datetime.datetime.now().isoformat()
+        current_pids = {str(item["product_id"]) for item in current_items}
 
         with self._get_conn() as conn:
+            # 兼容历史数据库：如无 is_active_special 字段则动态添加
+            cursor = conn.execute("PRAGMA table_info(tobacco_specials)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if "is_active_special" not in columns:
+                conn.execute("ALTER TABLE tobacco_specials ADD COLUMN is_active_special INTEGER DEFAULT 1")
+
             for item in current_items:
                 pid = str(item["product_id"])
                 row = conn.execute(
@@ -106,39 +114,43 @@ class Storage:
                     conn.execute("""
                     INSERT INTO tobacco_specials
                     (product_id, sku, brand, title, sale_price_usd, regular_price_usd, is_in_stock,
-                     discount_msg, family, components, cut, flavor_category, url, image_url,
-                     first_seen_at, last_seen_at, notified_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     is_active_special, discount_msg, family, components, cut, flavor_category,
+                     url, image_url, first_seen_at, last_seen_at, notified_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         pid, item.get("sku", ""), item.get("brand", ""), item.get("title", ""),
                         item.get("sale_price_usd", 0.0), item.get("regular_price_usd", 0.0),
-                        1 if item.get("is_in_stock") else 0, item.get("discount_msg", ""),
+                        1 if item.get("is_in_stock") else 0, 1, item.get("discount_msg", ""),
                         item.get("family", ""), item.get("components", ""), item.get("cut", ""),
                         item.get("flavor_category", ""), item.get("url", ""), item.get("image_url", ""),
                         now, now, now
                     ))
                 else:
-                    # 已有记录，检查价格与库存状态变动
+                    was_active = row["is_active_special"] if "is_active_special" in row.keys() else 1
                     old_price = row["sale_price_usd"]
                     old_in_stock = bool(row["is_in_stock"])
                     curr_price = item.get("sale_price_usd", 0.0)
                     curr_in_stock = bool(item.get("is_in_stock"))
 
-                    # 1. 价格更低了
-                    if curr_price > 0 and curr_price < old_price - 0.01:
-                        item["old_price_usd"] = old_price
-                        price_drops.append(item)
+                    # 如果之前已下架 (was_active == 0)，现在重新特价上架了，计为上新提醒
+                    if was_active == 0:
+                        new_items.append(item)
+                    else:
+                        # 1. 价格更低了
+                        if curr_price > 0 and curr_price < old_price - 0.01:
+                            item["old_price_usd"] = old_price
+                            price_drops.append(item)
 
-                    # 2. 原先缺货现在补货到货了
-                    if not old_in_stock and curr_in_stock:
-                        restocked_items.append(item)
+                        # 2. 原先缺货现在补货到货了
+                        if not old_in_stock and curr_in_stock:
+                            restocked_items.append(item)
 
-                    # 更新记录
+                    # 更新记录并标记为活跃特价 (is_active_special = 1)
                     conn.execute("""
                     UPDATE tobacco_specials
                     SET sale_price_usd = ?, regular_price_usd = ?, is_in_stock = ?,
-                        discount_msg = ?, family = ?, components = ?, cut = ?,
-                        flavor_category = ?, last_seen_at = ?
+                        is_active_special = 1, discount_msg = ?, family = ?,
+                        components = ?, cut = ?, flavor_category = ?, last_seen_at = ?
                     WHERE product_id = ?
                     """, (
                         curr_price, item.get("regular_price_usd", 0.0), 1 if curr_in_stock else 0,
@@ -146,16 +158,30 @@ class Storage:
                         item.get("cut", ""), item.get("flavor_category", ""), now, pid
                     ))
 
+            # 标记下架：不在当前特价页面中的商品，标记为已下架 (is_active_special = 0)
+            if current_pids:
+                placeholders = ",".join("?" for _ in current_pids)
+                conn.execute(f"""
+                UPDATE tobacco_specials
+                SET is_active_special = 0
+                WHERE product_id NOT IN ({placeholders}) AND is_active_special = 1
+                """, list(current_pids))
+
             conn.commit()
 
         return new_items, price_drops, restocked_items
 
     def get_all_active_specials(self) -> List[dict]:
-        """获取最近活跃的全部特价商品"""
+        """获取当前真正活跃打折的全部特价商品"""
         with self._get_conn() as conn:
-            rows = conn.execute("""
+            # 兼容字段
+            cursor = conn.execute("PRAGMA table_info(tobacco_specials)")
+            columns = [row[1] for row in cursor.fetchall()]
+            where_clause = "WHERE is_active_special = 1" if "is_active_special" in columns else "WHERE datetime(last_seen_at) >= datetime('now', '-2 hours')"
+
+            rows = conn.execute(f"""
             SELECT * FROM tobacco_specials
-            WHERE datetime(last_seen_at) >= datetime('now', '-2 days')
+            {where_clause}
             ORDER BY is_in_stock DESC, brand ASC, title ASC
             """).fetchall()
             return [dict(r) for r in rows]

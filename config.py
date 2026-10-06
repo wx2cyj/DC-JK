@@ -26,8 +26,9 @@ class Config:
     # 首次启动是否发送当前全部特价草概览通知（默认 True）
     NOTIFY_ON_STARTUP = os.getenv("NOTIFY_ON_STARTUP", "true").lower() in ("true", "1", "yes")
 
-    # 每日定时发送一次在售特价总清单的时间（格式 HH:MM，如 09:00，留空则不发送）
-    DAILY_REPORT_TIME = os.getenv("DAILY_REPORT_TIME", "09:00")
+    # 每日定时发送一次在售特价总清单的时间（格式 HH:MM，如 09:00，留空则不发送每日重复清单）
+    # 默认留空：仅在有新特价、降价或补货时实时通知，避免每日骚扰
+    DAILY_REPORT_TIME = os.getenv("DAILY_REPORT_TIME", "").strip()
 
     # 企业微信 API 代理地址 (如果 NAS 没有固定 IPv4，可使用 VPS 上的企微代理，如 http://140.245.40.253:56789)
     # 留空则默认直接请求官方地址 https://qyapi.weixin.qq.com

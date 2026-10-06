@@ -3,6 +3,8 @@ import logging
 import requests
 from typing import List, Dict
 from config import Config
+from currency import CurrencyConverter
+from flavor_classifier import translate_cut
 
 logger = logging.getLogger("Notifier")
 
@@ -141,10 +143,19 @@ def build_card_text_formatted(item: Dict) -> str:
     brand = item.get("brand", "SP")
     flavor = item.get("flavor_category", "综合调配")
     flavor_desc = item.get("flavor_desc", "")
-    cut = item.get("cut_cn", "未知裁切")
-    sale_usd = item.get("sale_price_usd", 0.0)
-    reg_usd = item.get("regular_price_usd", 0.0)
-    sale_cny = item.get("sale_price_cny", 0.0)
+
+    cut = item.get("cut_cn")
+    if not cut or cut == "未知裁切":
+        cut = translate_cut(item.get("cut", ""), title)
+
+    sale_usd = float(item.get("sale_price_usd", 0.0) or 0.0)
+    reg_usd = float(item.get("regular_price_usd", 0.0) or 0.0)
+
+    # 动态补齐人民币汇率换算，避免为 ¥0.00
+    sale_cny = item.get("sale_price_cny")
+    if sale_cny is None or (sale_cny == 0.0 and sale_usd > 0):
+        sale_cny = CurrencyConverter.to_cny(sale_usd)
+
     in_stock = item.get("is_in_stock", True)
     url = item.get("url", "https://www.smokingpipes.com")
     discount_msg = item.get("discount_msg", "")
@@ -185,10 +196,19 @@ def build_card_markdown_formatted(item: Dict) -> str:
     brand = item.get("brand", "SP")
     flavor = item.get("flavor_category", "综合调配")
     flavor_desc = item.get("flavor_desc", "")
-    cut = item.get("cut_cn", "未知裁切")
-    sale_usd = item.get("sale_price_usd", 0.0)
-    reg_usd = item.get("regular_price_usd", 0.0)
-    sale_cny = item.get("sale_price_cny", 0.0)
+
+    cut = item.get("cut_cn")
+    if not cut or cut == "未知裁切":
+        cut = translate_cut(item.get("cut", ""), title)
+
+    sale_usd = float(item.get("sale_price_usd", 0.0) or 0.0)
+    reg_usd = float(item.get("regular_price_usd", 0.0) or 0.0)
+
+    # 动态补齐人民币汇率换算，避免为 ¥0.00
+    sale_cny = item.get("sale_price_cny")
+    if sale_cny is None or (sale_cny == 0.0 and sale_usd > 0):
+        sale_cny = CurrencyConverter.to_cny(sale_usd)
+
     in_stock = item.get("is_in_stock", True)
     url = item.get("url", "https://www.smokingpipes.com")
     discount_msg = item.get("discount_msg", "")
@@ -228,7 +248,12 @@ def notify_new_specials(items: List[Dict]):
     if not items:
         return
 
-    rate_desc = items[0].get("rate_desc", "汇率计算")
+    rate_desc = ""
+    if items and items[0].get("rate_desc"):
+        rate_desc = items[0]["rate_desc"]
+    if not rate_desc:
+        rate_desc = CurrencyConverter.get_source_desc()
+
     total_count = len(items)
     title = f"🔥 SP站特价上新：发现 {total_count} 款特价斗草！"
 
@@ -334,7 +359,13 @@ def notify_daily_summary(all_items: List[Dict]):
     """推送全量在售特价总览"""
     if not all_items:
         return
-    rate_desc = all_items[0].get("rate_desc", "") if all_items else ""
+
+    rate_desc = ""
+    if all_items and all_items[0].get("rate_desc"):
+        rate_desc = all_items[0]["rate_desc"]
+    if not rate_desc:
+        rate_desc = CurrencyConverter.get_source_desc()
+
     title = f"📋 SP站特价每日总览：在售 {len(all_items)} 款特价斗草"
 
     in_stock_items = [i for i in all_items if i.get("is_in_stock")]
