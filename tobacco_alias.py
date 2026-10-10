@@ -32,8 +32,9 @@ BRAND_CN_MAP = {
     "dan tobacco": "丹王 (Dan Tobacco)",
     "robert mcconnell": "麦康奈尔 (McConnell)",
     "mcclelland": "麦克林兰 (McClelland)",
-    "esoterica": "埃索 (Esoterica)",
-    "j.f. germain": "杰曼 (Germain's)",
+    "esoterica": "E家 (Esoterica)",
+    "j.f. germain": "德尔曼 (Germain's)",
+    "germain": "德尔曼 (Germain's)",
     "amphora": "土罐 (Amphora)",
     "captain black": "黑船长 (Captain Black)",
     "lane limited": "兰恩 (Lane Limited)",
@@ -95,15 +96,26 @@ TOBACCO_ALIAS_RULES = [
     (r"beacon", "灯塔 (高糖V草)"),
     (r"tudor castle", "都铎城堡"),
 
-    # 5. 埃索特里卡 (Esoterica) 彭赞斯 / 巨石阵
-    (r"penzance", "彭赞斯 (大名鼎鼎P草 / 天花板重度英式L草压饼)"),
-    (r"stonehaven", "巨石阵 (石避风港 / 水果酒香黑切片)"),
-    (r"peacehaven", "和平港 (纯V金丝切片)"),
-    (r"tilbury", "蒂尔伯里"),
-    (r"margate", "马盖特"),
-    (r"dorchester", "多切斯特"),
-    (r"dunbar", "邓巴"),
-    (r"and so to bed", "就寝安睡"),
+    # 5. E家 (Esoterica) 彭赞斯 / 巨石阵
+    (r"penzance", "E家彭赞斯 (P草 / 天花板重度英式L草压饼)"),
+    (r"stonehaven", "E家巨石阵 (石避风港 / 水果酒香黑切片)"),
+    (r"peacehaven", "E家和平港 (纯V金丝切片)"),
+    (r"tilbury", "E家蒂尔伯里"),
+    (r"margate", "E家马盖特"),
+    (r"dorchester", "E家多切斯特"),
+    (r"dunbar", "E家邓巴"),
+    (r"and so to bed", "E家就寝安睡"),
+
+    # 5.1 德尔曼 (J.F. Germain & Son) 巴尔干 / 布朗切片 / 皇家泽西
+    (r"balkan sobranie", "德尔曼巴尔干 (巴尔干沙芬草 / 传奇名草)"),
+    (r"germain.*brown flake|brown flake.*germain", "德尔曼布朗切片 (梅花切片 / 经典纯V)"),
+    (r"germain.*special flake|special flake.*germain", "德尔曼特殊切片"),
+    (r"royal jersey", "德尔曼皇家泽西 (经典泽西切片)"),
+    (r"rich dark flake", "德尔曼深色浓郁切片 (RDF)"),
+    (r"germain.*medium flake|medium flake.*germain", "德尔曼中度切片"),
+    (r"uncle tom", "德尔曼汤姆叔叔"),
+    (r"king charles", "德尔曼查尔斯国王"),
+    (r"bridge mixture", "德尔曼桥牌混合"),
 
     # 6. 丹王 (Dan Tobacco / DT) 蓝调 / 魔鬼假日 / 咸狗 / 汉堡舵手
     (r"blue note", "蓝调 (蓝狗 / 经典水果香草调味大名神草)"),
